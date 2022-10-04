@@ -1,5 +1,6 @@
 {
   "name": "fs-pet-store",
+  "type": "module",
   "version": "0.1.0",
   "description": "A small server app to demonstrate CRUD over an HTTP API",
   "main": "restfulExpressServer.js",
@@ -25,6 +26,10 @@
   },
   "homepage": "https://github.com/gSchool/fs-pet-shop#readme",
   "dependencies": {
+    "body-parser": "^1.20.0",
+    "express": "^4.18.1",
+    "httpie": "^1.1.2",
+    "morgan": "^1.10.0",
     "nodemon": "^1.9.1"
   },
   "devDependencies": {
