@@ -1,80 +1,70 @@
-const { application } = require('express');
-const express = require('express');
-const app = express();
-const fs = require('fs');
-app.use(express.json());
-
+import { application, request } from 'express';
+import express, { json } from 'express';
 const PORT = 9000;
+import pg from "pg";
+const { Client } = pg;
+const connectionString = 'postgres://postgres:postgrespw@localhost:49153/petshop';
 
-app.get('/pets', (req, res) => {
-    res.send("hello world!");
+const client = new Client({
+    connectionString: connectionString
+});
+
+const app = express();
+client.connect();
+
+app.use(json());
+
+
+// /pets 
+app.route('/pets')
+.get((req, res) => {
+    client.query('SELECT * FROM pet')
+    .then(result => {
+        res.send(result.rows);
+    });
 })
+.post((req, res) => {
+    const {pet_name, pet_kind, pet_age} = req.body;
+    client.query('INSERT INTO pet (pet_name, pet_kind, pet_age) VALUES ($1, $2, $3)', [pet_name, pet_kind, pet_age], 
+    (error, results) => {
+        if (error) {
+          throw error
+        }
+        res.status(201).send(`Pet added`)
+      });
+});
 
-app.get('/pets/:id', (req, res) => {
-    fs.readFile('./pets.json', 'utf8', function(err, petsJSON) {
-        let pets = JSON.parse(petsJSON);
-        if (err) {
-                console.log(err);
-                res.status(500)
-                res.send(err);
-        }     
-        else if (!pets[req.params.id]){
-                res.status(404)
-                res.send(err);
-        }
-        else {
-            var petsData = JSON.stringify(pets[req.params.id]);
-            res.status(200);
-            res.send(petsData);
-        }
+//  /pets id
+app.route('/pets/:pet_id')
+.get((req, res) => {
+    client.query(`SELECT * FROM pet WHERE pet_id = ${req.params.pet_id}`)
+    .then(result => {
+        result.rows.length < 1 ? res.send('Cannot find that pet! Sorry broski. Maybe you should AskJeff :P') : res.send(result.rows);
+    });
+})
+.patch((req, res) => {
+    client.query(`UPDATE pet SET pet_name = '${req.body.pet_name}' WHERE pet_id = ${req.params.pet_id}`)
+    .then(result => {
+        res.status(201).send(`Pet name updated`);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+})
+.delete((req, res) => {
+    client.query(`DELETE FROM pet WHERE pet_id = ${req.params.pet_id}`)
+    .then(() => {
+        res.status(200).send('Pet deleted');
+    })
+    .catch(error => {
+            console.error(error);
     });
 });
 
-app.patch('/pets/:id', function(req, res) {
-    fs.readFile('./pets.json', 'utf8', (err, data) => {
-        console.log(req.params)
-        console.log(req.body);
-              if (err) {
-                  console.log(err)
-              }
-              else {
-                let pets = JSON.parse(data);
-                console.log(pets);
-                for(var i = 0; i < pets.length; i++) {
-                      if (req.body.name != null && pets[i].name != null) {
-                        pets[req.params.id].name = req.body.name;
-                        res.status(200);
-                        res.send(JSON.stringify(pets));
-                        process.exit();
-                    }
-                    else {
-                        console.log('input not found');
-                    }
-                }
-                
-              }
-    }) 
+app.get('/', (req, res) => {
+    res.send('Welcome to the pet shop API!');
 });
 
-
-
-app.post('/pets', (req, res) => {
-    fs.readFile('./pets.json', 'utf8', (err, data) => {
-        console.log(req.body);
-              if (err) {
-                  console.log(err)
-              }
-              else {
-                let pets = JSON.parse(data);
-                console.log(pets);
-                pets.push(req.body)
-                res.status(200);
-                res.send(JSON.stringify(pets));
-                process.exit();
-              }
-          }) 
-    })
-    
 app.listen(PORT, (req, res) => {
   console.log('listening on port ' + PORT);
-})
+});
